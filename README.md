@@ -18,7 +18,7 @@ Discord Server: [https://discord.gg/X7zpGdyUcY](https://discord.gg/X7zpGdyUcY)
 
 Please see the new links:
 
-- `ESP32Async/ESPAsyncWebServer @ 3.6.0` (ESP32, ESP8266, RP2040)
+- `ESP32Async/ESPAsyncWebServer @ 3.6.1` (ESP32, ESP8266, RP2040)
 - `ESP32Async/AsyncTCP @ 3.3.2` (ESP32)
 - `ESP32Async/ESPAsyncTCP @ 2.0.0` (ESP8266)
 - `https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip` (AsyncTCP alternative for ESP32)
@@ -95,7 +95,7 @@ If you are an ESP8266 user and want to help improve current 3.x, you are more th
 ```ini
 lib_compat_mode = strict
 lib_ldf_mode = chain
-lib_deps = ESP32Async/ESPAsyncWebServer @ 3.6.0
+lib_deps = ESP32Async/ESPAsyncWebServer @ 3.6.1
 ```
 
 **Dependencies:**
@@ -121,7 +121,7 @@ lib_ldf_mode = chain
 lib_deps =
   ; ESP32Async/AsyncTCP @ 3.3.2
   https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip
-  ESP32Async/ESPAsyncWebServer @ 3.6.0
+  ESP32Async/ESPAsyncWebServer @ 3.6.1
 lib_ignore =
   AsyncTCP
   ESP32Async/AsyncTCP
@@ -129,7 +129,7 @@ lib_ignore =
 
 ## Performance
 
-Performance of `ESP32Async/ESPAsyncWebServer @ 3.6.0`:
+Performance of `ESP32Async/ESPAsyncWebServer @ 3.6.1`:
 
 ```bash
 > brew install autocannon
