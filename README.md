@@ -208,6 +208,8 @@ I personally use the following configuration in my projects:
   -D CONFIG_ASYNC_TCP_STACK_SIZE=4096     // reduce the stack size (default is 16K)
 ```
 
+If you need to server long / slow requests using chunk encoding (like fiel download from SD Card), you might need to set `-D ASYNCWEBSERVER_USE_CHUNK_INFLIGHT=1`.
+
 ## `AsyncWebSocketMessageBuffer` and `makeBuffer()`
 
 The fork from [yubox-node-org](https://github.com/yubox-node-org/ESPAsyncWebServer) introduces some breaking API changes compared to the original library, especially regarding the use of `std::shared_ptr<std::vector<uint8_t>>` for WebSocket.
