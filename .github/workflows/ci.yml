@@ -109,7 +109,7 @@ jobs:
           - env: ci-arduino-3-no-json
             board: esp32dev
 
-          - env: ci-arduino-3-no-chunk-inflight
+          - env: ci-arduino-3-chunk-inflight
             board: esp32dev
 
           - env: ci-esp8266
