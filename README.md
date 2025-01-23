@@ -208,7 +208,7 @@ I personally use the following configuration in my projects:
   -D CONFIG_ASYNC_TCP_STACK_SIZE=4096     // reduce the stack size (default is 16K)
 ```
 
-If you need to server long / slow requests using chunk encoding (like fiel download from SD Card), you might need to set `-D ASYNCWEBSERVER_USE_CHUNK_INFLIGHT=1`.
+If you need to serve chunk requests with a really low buffer (which should be avoided), you can set `-D ASYNCWEBSERVER_USE_CHUNK_INFLIGHT=0` to disable the in-flight control.
 
 ## `AsyncWebSocketMessageBuffer` and `makeBuffer()`
 
