@@ -109,6 +109,9 @@ jobs:
           - env: ci-arduino-3-no-json
             board: esp32dev
 
+          - env: ci-arduino-3-latest-asynctcp
+            board: esp32dev
+
           - env: ci-arduino-3-no-chunk-inflight
             board: esp32dev
 
