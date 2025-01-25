@@ -1,4 +1,6 @@
-//
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
+
 //  SSE server with a load generator
 //  it will auto adjust message push rate to minimize discards across all connected clients
 //  per second stats is printed to a serial console and also published as SSE ping message

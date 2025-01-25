@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
+
 #include "AsyncJson.h"
 
 #if ASYNC_JSON_SUPPORT == 1
