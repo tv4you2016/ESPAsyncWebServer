@@ -48,10 +48,7 @@
 
 #include "literals.h"
 
-#define ASYNCWEBSERVER_VERSION          "3.6.2"
-#define ASYNCWEBSERVER_VERSION_MAJOR    3
-#define ASYNCWEBSERVER_VERSION_MINOR    6
-#define ASYNCWEBSERVER_VERSION_REVISION 2
+#include "AsyncWebServerVersion.h"
 #define ASYNCWEBSERVER_FORK_ESP32Async
 
 #ifdef ASYNCWEBSERVER_REGEX
