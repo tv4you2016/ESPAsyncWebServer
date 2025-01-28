@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
+
 // Reproduced issue https://github.com/ESP32Async/ESPAsyncWebServer/issues/26
 
 #include <DNSServer.h>

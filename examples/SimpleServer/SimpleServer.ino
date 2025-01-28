@@ -1,9 +1,10 @@
-//
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
+
 // A simple server implementation showing how to:
 //  * serve static messages
 //  * read GET and POST parameters
 //  * handle missing pages / 404s
-//
 
 #include <Arduino.h>
 #ifdef ESP32
