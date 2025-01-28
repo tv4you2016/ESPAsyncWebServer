@@ -916,11 +916,10 @@ void AsyncWebSocket::cleanupClients(uint16_t maxClients) {
     _clients.front().close();
   }
 
-  for (auto iter = std::begin(_clients); iter != std::end(_clients);) {
-    if (iter->shouldBeDeleted()) {
-      iter = _clients.erase(iter);
-    } else {
-      iter++;
+  for (auto i = _clients.begin(); i != _clients.end(); ++i) {
+    if (i->shouldBeDeleted()) {
+      _clients.erase(i);
+      break;
     }
   }
 }
