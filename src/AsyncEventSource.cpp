@@ -398,6 +398,7 @@ void AsyncEventSource::_handleDisconnect(AsyncEventSourceClient *client) {
   for (auto i = _clients.begin(); i != _clients.end(); ++i) {
     if (i->get() == client) {
       _clients.erase(i);
+      break;
     }
   }
   _adjust_inflight_window();
