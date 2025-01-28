@@ -18,11 +18,11 @@ Discord Server: [https://discord.gg/X7zpGdyUcY](https://discord.gg/X7zpGdyUcY)
 
 Please see the new links:
 
-- `ESP32Async/ESPAsyncWebServer @ 3.6.2` (ESP32, ESP8266, RP2040)
-- `ESP32Async/AsyncTCP @ 3.3.2` (ESP32)
-- `ESP32Async/ESPAsyncTCP @ 2.0.0` (ESP8266)
+- `ESP32Async/ESPAsyncWebServer` (ESP32, ESP8266, RP2040)
+- `ESP32Async/AsyncTCP` (ESP32)
+- `ESP32Async/ESPAsyncTCP` (ESP8266)
 - `https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip` (AsyncTCP alternative for ESP32)
-- `khoih-prog/AsyncTCP_RP2040W @ 1.2.0` (RP2040)
+- `khoih-prog/AsyncTCP_RP2040W` (RP2040)
 
 Asynchronous HTTP and WebSocket Server Library for ESP32, ESP8266 and RP2040
 Supports: WebSocket, SSE, Authentication, Arduino Json 7, File Upload, Static File serving, URL Rewrite, URL Redirect, etc.
@@ -95,21 +95,15 @@ If you are an ESP8266 user and want to help improve current 3.x, you are more th
 ```ini
 lib_compat_mode = strict
 lib_ldf_mode = chain
-lib_deps = ESP32Async/ESPAsyncWebServer @ 3.6.2
+lib_deps = ESP32Async/ESPAsyncWebServer
 ```
 
 **Dependencies:**
 
-- **ESP32 with AsyncTCP**: `ESP32Async/AsyncTCP @ 3.3.2`
-  Arduino IDE: [https://github.com/ESP32Async/AsyncTCP#v3.3.2](https://github.com/ESP32Async/AsyncTCP/releases)
-
+- **ESP32 with AsyncTCP**: [`ESP32Async/AsyncTCP`](https://github.com/ESP32Async/AsyncTCP/releases)
 - **ESP32 with AsyncTCPSock**: `https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip`
-
-- **ESP8266**: `ESP32Async/ESPAsyncTCP @ 2.0.0`
-  Arduino IDE: [https://github.com/ESP32Async/ESPAsyncTCP#v2.0.0](https://github.com/ESP32Async/ESPAsyncTCP/releases/tag/v2.0.0)
-
-- **RP2040**: `khoih-prog/AsyncTCP_RP2040W @ 1.2.0`
-  Arduino IDE: [https://github.com/khoih-prog/AsyncTCP_RP2040W#v1.2.0](https://github.com/khoih-prog/AsyncTCP_RP2040W/releases/tag/v1.2.0)
+- **ESP8266**: [`ESP32Async/ESPAsyncTCP`](https://github.com/ESP32Async/ESPAsyncTCP/releases)
+- **RP2040**: [`khoih-prog/AsyncTCP_RP2040W`](https://github.com/khoih-prog/AsyncTCP_RP2040W/releases)
 
 **AsyncTCPSock**
 
@@ -119,9 +113,8 @@ AsyncTCPSock can be used instead of AsyncTCP by excluding AsyncTCP from the libr
 lib_compat_mode = strict
 lib_ldf_mode = chain
 lib_deps =
-  ; ESP32Async/AsyncTCP @ 3.3.2
   https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip
-  ESP32Async/ESPAsyncWebServer @ 3.6.2
+  ESP32Async/ESPAsyncWebServer
 lib_ignore =
   AsyncTCP
   ESP32Async/AsyncTCP
@@ -129,7 +122,7 @@ lib_ignore =
 
 ## Performance
 
-Performance of `ESP32Async/ESPAsyncWebServer @ 3.6.2`:
+Performance of `ESP32Async/ESPAsyncWebServer`:
 
 ```bash
 > brew install autocannon
@@ -193,7 +186,7 @@ Read #165 thread, it might give you some hints.
 `CONFIG_ASYNC_TCP_RUNNING_CORE` - CPU core thread affinity that runs the queue events handling and executes server callbacks. Default is ANY core, so it means that for dualcore SoCs both cores could handle server activities. If your server's code is too heavy and unoptimized or you see that sometimes
 server might affect other network activities, you might consider to bind it to the same core that runs Arduino code (1) to minimize affect on radio part. Otherwise you can leave the default to let RTOS decide where to run the thread based on priority
 
-`CONFIG_ASYNC_TCP_STACK_SIZE` - stack size for the thread that runs sever events and callbacks. Default is 16k that is a way too much waste for well-defined short async code or  simple static file handling. You might want to cosider reducing it to 4-8k to same RAM usage. If you do not know what this is or not sure about your callback code demands - leave it as default, should be enough even for very hungry callbacks in most cases.
+`CONFIG_ASYNC_TCP_STACK_SIZE` - stack size for the thread that runs sever events and callbacks. Default is 16k that is a way too much waste for well-defined short async code or simple static file handling. You might want to cosider reducing it to 4-8k to same RAM usage. If you do not know what this is or not sure about your callback code demands - leave it as default, should be enough even for very hungry callbacks in most cases.
 
 > [!NOTE]
 > This relates to ESP32 only, ESP8266 uses different ESPAsyncTCP lib that does not has this build options
@@ -336,7 +329,9 @@ myHandler.addMiddleware(&authMiddleware); // add authentication to a specific ha
   These callbacks are also not triggering the whole middleware chain since they are not part of the request processing workflow (they are not the final handler).
 
 ## Original Documentation
+
 <!-- no toc -->
+
 - [Why should you care](#why-should-you-care)
 - [Important things to remember](#important-things-to-remember)
 - [Principles of operation](#principles-of-operation)
