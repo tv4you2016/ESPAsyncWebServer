@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
 
-//  SSE server with a load generator
-//  it will auto adjust message push rate to minimize discards across all connected clients
-//  per second stats is printed to a serial console and also published as SSE ping message
-//  open /sse URL to start events generator
+//
+// Simulate a slow response in a chunk response (like file download from SD Card)
+// poll events will be throttled.
+//
 
 #include <Arduino.h>
 #ifdef ESP32
@@ -20,15 +20,9 @@
 
 #include <ESPAsyncWebServer.h>
 
-#if __has_include("ArduinoJson.h")
-#include <ArduinoJson.h>
-#include <AsyncJson.h>
-#include <AsyncMessagePack.h>
-#endif
+static AsyncWebServer server(80);
 
-#include <LittleFS.h>
-
-const char *htmlContent PROGMEM = R"(
+static const char *htmlContent PROGMEM = R"(
 <!DOCTYPE html>
 <html>
 <head>
@@ -88,175 +82,71 @@ const char *htmlContent PROGMEM = R"(
 </html>
 )";
 
-const char *staticContent PROGMEM = R"(
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sample HTML</title>
-</head>
-<body>
-    <h1>Hello, %IP%</h1>
-</body>
-</html>
-)";
-
-AsyncWebServer server(80);
-AsyncEventSource events("/events");
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-const char *PARAM_MESSAGE PROGMEM = "message";
-const char *SSE_HTLM PROGMEM = R"(
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Server-Sent Events</title>
-  <script>
-    if (!!window.EventSource) {
-      var source = new EventSource('/events');
-      source.addEventListener('open', function(e) {
-        console.log("Events Connected");
-      }, false);
-      source.addEventListener('error', function(e) {
-        if (e.target.readyState != EventSource.OPEN) {
-          console.log("Events Disconnected");
-        }
-      }, false);
-      source.addEventListener('message', function(e) {
-        console.log("message", e);
-      }, false);
-      source.addEventListener('heartbeat', function(e) {
-        console.log("heartbeat", e.data);
-      }, false);
-    }
-  </script>
-</head>
-<body>
-  <h1>Open your browser console!</h1>
-</body>
-</html>
-)";
-
-static const char *SSE_MSG =
-  R"(Alice felt that this could not be denied, so she tried another question. 'What sort of people live about here?' 'In THAT direction,' the Cat said, waving its right paw round, 'lives a Hatter: and in THAT direction,' waving the other paw, 'lives a March Hare. Visit either you like: they're both mad.'
-'But I don't want to go among mad people,' Alice remarked. 'Oh, you can't help that,' said the Cat: 'we're all mad here. I'm mad. You're mad.' 'How do you know I'm mad?' said Alice.
-'You must be,' said the Cat, `or you wouldn't have come here.' Alice didn't think that proved it at all; however, she went on 'And how do you know that you're mad?' 'To begin with,' said the Cat, 'a dog's not mad. You grant that?'
-)";
-
-void notFound(AsyncWebServerRequest *request) {
-  request->send(404, "text/plain", "Not found");
-}
-
-static const char characters[] = "0123456789ABCDEF";
+static const size_t htmlContentLength = strlen_P(htmlContent);
+static constexpr char characters[] = "0123456789ABCDEF";
 static size_t charactersIndex = 0;
 
 void setup() {
-
   Serial.begin(115200);
 
 #ifndef CONFIG_IDF_TARGET_ESP32H2
-  /*
-     WiFi.mode(WIFI_STA);
-     WiFi.begin("SSID", "passwd");
-     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-       Serial.printf("WiFi Failed!\n");
-       return;
-     }
-     Serial.print("IP Address: ");
-     Serial.println(WiFi.localIP());
-  */
-
   WiFi.mode(WIFI_AP);
   WiFi.softAP("esp-captive");
 #endif
 
+  // curl -v http://192.168.4.1/
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/html", staticContent);
+    // need to cast to uint8_t*
+    // if you do not, the const char* will be copied in a temporary String buffer
+    request->send(200, "text/html", (uint8_t *)htmlContent, htmlContentLength);
   });
 
-  events.onConnect([](AsyncEventSourceClient *client) {
-    if (client->lastId()) {
-      Serial.printf("SSE Client reconnected! Last message ID that it gat is: %" PRIu32 "\n", client->lastId());
-    }
-    client->send("hello!", NULL, millis(), 1000);
+  // IMPORTANT - DO NOT WRITE SUCH CODE IN PRODUCTON !
+  //
+  // This example simulates the slowdown that can happen when:
+  // - downloading a huge file from sdcard
+  // - doing some file listing on SDCard because it is horribly slow to get a file listing with file stats on SDCard.
+  // So in both cases, ESP would deadlock or TWDT would trigger.
+  //
+  // This example simulats that by slowing down the chunk callback:
+  // - d=2000 is the delay in ms in the callback
+  // - l=10000 is the length of the response
+  //
+  // time curl -N -v -G -d 'd=2000' -d 'l=10000'  http://192.168.4.1/slow.html --output -
+  //
+  server.on("/slow.html", HTTP_GET, [](AsyncWebServerRequest *request) {
+    uint32_t d = request->getParam("d")->value().toInt();
+    uint32_t l = request->getParam("l")->value().toInt();
+    Serial.printf("d = %" PRIu32 ", l = %" PRIu32 "\n", d, l);
+    AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", [d, l](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+      Serial.printf("%u\n", index);
+      // finished ?
+      if (index >= l) {
+        return 0;
+      }
+
+      // slow down the task to simulate some heavy processing, like SD card reading
+      delay(d);
+
+      memset(buffer, characters[charactersIndex], 256);
+      charactersIndex = (charactersIndex + 1) % sizeof(characters);
+      return 256;
+    });
+
+    request->send(response);
   });
-
-  server.on("/sse", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/html", SSE_HTLM);
-  });
-
-  // go to http://192.168.4.1/sse
-  server.addHandler(&events);
-
-  server.onNotFound(notFound);
 
   server.begin();
 }
 
-uint32_t lastSSE = 0;
-uint32_t deltaSSE = 25;
-uint32_t messagesSSE = 4;  // how many messages to q each time
-uint32_t sse_disc{0}, sse_enq{0}, sse_penq{0}, sse_second{0};
-
-AsyncEventSource::SendStatus enqueue() {
-  AsyncEventSource::SendStatus state = events.send(SSE_MSG, "message");
-  if (state == AsyncEventSource::SendStatus::DISCARDED) {
-    ++sse_disc;
-  } else if (state == AsyncEventSource::SendStatus::ENQUEUED) {
-    ++sse_enq;
-  } else {
-    ++sse_penq;
-  }
-
-  return state;
-}
+static uint32_t lastHeap = 0;
 
 void loop() {
+#ifdef ESP32
   uint32_t now = millis();
-  if (now - lastSSE >= deltaSSE) {
-    // enqueue messages
-    for (uint32_t i = 0; i != messagesSSE; ++i) {
-      auto err = enqueue();
-      if (err == AsyncEventSource::SendStatus::DISCARDED || err == AsyncEventSource::SendStatus::PARTIALLY_ENQUEUED) {
-        // throttle messaging a bit
-        lastSSE = now + deltaSSE;
-        break;
-      }
-    }
-
-    lastSSE = millis();
+  if (now - lastHeap >= 2000) {
+    Serial.printf("Free heap: %" PRIu32 "\n", ESP.getFreeHeap());
+    lastHeap = now;
   }
-
-  if (now - sse_second > 1000) {
-    String s;
-    s.reserve(100);
-    s = "Ping:";
-    s += now / 1000;
-    s += " clients:";
-    s += events.count();
-    s += " disc:";
-    s += sse_disc;
-    s += " enq:";
-    s += sse_enq;
-    s += " partial:";
-    s += sse_penq;
-    s += " avg wait:";
-    s += events.avgPacketsWaiting();
-    s += " heap:";
-    s += ESP.getFreeHeap() / 1024;
-
-    events.send(s, "heartbeat", now);
-    Serial.println();
-    Serial.println(s);
-
-    // if we see discards or partial enqueues, let's decrease message rate, else - increase. So that we can come to a max sustained message rate
-    if (sse_disc || sse_penq) {
-      ++deltaSSE;
-    } else if (deltaSSE > 5) {
-      --deltaSSE;
-    }
-
-    sse_disc = sse_enq = sse_penq = 0;
-    sse_second = now;
-  }
+#endif
 }

@@ -14,8 +14,8 @@
 #endif
 #include "ESPAsyncWebServer.h"
 
-DNSServer dnsServer;
-AsyncWebServer server(80);
+static DNSServer dnsServer;
+static AsyncWebServer server(80);
 
 class CaptiveRequestHandler : public AsyncWebHandler {
 public:
