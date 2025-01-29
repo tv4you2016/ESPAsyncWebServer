@@ -12,31 +12,142 @@
 [![GitHub latest commit](https://badgen.net/github/last-commit/ESP32Async/ESPAsyncWebServer)](https://GitHub.com/ESP32Async/ESPAsyncWebServer/commit/)
 [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/ESP32Async/ESPAsyncWebServer)
 
-Project moved to [ESP32Async](https://github.com/ESP32Async) organization at [https://github.com/ESP32Async/ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer)
-
 Discord Server: [https://discord.gg/X7zpGdyUcY](https://discord.gg/X7zpGdyUcY)
 
-Please see the new links:
+## Asynchronous HTTP and WebSocket Server Library for ESP32, ESP8266 and RP2040
 
-- `ESP32Async/ESPAsyncWebServer` (ESP32, ESP8266, RP2040)
-- `ESP32Async/AsyncTCP` (ESP32)
-- `ESP32Async/ESPAsyncTCP` (ESP8266)
-- `https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip` (AsyncTCP alternative for ESP32)
-- `khoih-prog/AsyncTCP_RP2040W` (RP2040)
-
-Asynchronous HTTP and WebSocket Server Library for ESP32, ESP8266 and RP2040
 Supports: WebSocket, SSE, Authentication, Arduino Json 7, File Upload, Static File serving, URL Rewrite, URL Redirect, etc.
 
-- [Changes in this repository](#changes-in-this-repository)
+- [Compatibility](#compatibility)
+- [How to install](#how-to-install)
 - [Dependencies](#dependencies)
-- [Performance](#performance)
+  - [ESP32 / pioarduino](#esp32--pioarduino)
+  - [ESP8266 / pioarduino](#esp8266--pioarduino)
+  - [Unofficial dependencies](#unofficial-dependencies)
 - [Important recommendations for build options](#important-recommendations-for-build-options)
+- [Changes in this repository](#changes-in-this-repository)
+- [Performance](#performance)
 - [`AsyncWebSocketMessageBuffer` and `makeBuffer()`](#asyncwebsocketmessagebuffer-and-makebuffer)
 - [How to replace a response](#how-to-replace-a-response)
 - [How to use Middleware](#how-to-use-middleware)
-- [How to use authentication with AsyncAuthenticationMiddleware](#how-to-use-authentication-with-authenticationmiddleware)
+- [How to use authentication with AsyncAuthenticationMiddleware](#how-to-use-authentication-with-asyncauthenticationmiddleware)
 - [Migration to Middleware to improve performance and memory usage](#migration-to-middleware-to-improve-performance-and-memory-usage)
 - [Original Documentation](#original-documentation)
+
+## Compatibility
+
+- ESP32, ESP8266, RP2040
+- Arduino Core 2.x and 3.x
+
+## How to install
+
+The library can be downloaded from the releases page at [https://github.com/ESP32Async/ESPAsyncWebServer/releases](https://github.com/ESP32Async/ESPAsyncWebServer/releases).
+
+It is also deployed in these registries:
+
+- Arduino Library Registry: [https://github.com/arduino/library-registry](https://github.com/arduino/library-registry)
+
+- ESP Component Registry [https://components.espressif.com/components/esp32async/espasyncbebserver/](https://components.espressif.com/components/esp32async/espasyncbebserver/)
+
+- PlatformIO Registry: [https://registry.platformio.org/libraries/esp32async/ESPAsyncWebServer](https://registry.platformio.org/libraries/esp32async/ESPAsyncWebServer)
+
+  - Use: `lib_deps=ESP32Async/ESPAsyncWebServer` to point to latest version
+  - Use: `lib_deps=ESP32Async/ESPAsyncWebServer @ ^<x.y.z>` to point to latest version with the same major version
+  - Use: `lib_deps=ESP32Async/ESPAsyncWebServer @ <x.y.z>` to always point to the same version (reproductible build)
+
+## Dependencies
+
+### ESP32 / pioarduino
+
+```ini
+[env:stable]
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip
+lib_compat_mode = strict
+lib_ldf_mode = chain
+lib_deps =
+  ESP32Async/AsyncTCP
+  ESP32Async/ESPAsyncWebServer
+```
+
+### ESP8266 / pioarduino
+
+```ini
+[env:stable]
+platform = espressif8266
+lib_compat_mode = strict
+lib_ldf_mode = chain
+lib_deps =
+  ESP32Async/ESPAsyncTCP
+  ESP32Async/ESPAsyncWebServer
+```
+
+### Unofficial dependencies
+
+**AsyncTCPSock**
+
+AsyncTCPSock can be used instead of AsyncTCP by excluding AsyncTCP from the library dependencies and adding AsyncTCPSock instead:
+
+```ini
+lib_compat_mode = strict
+lib_ldf_mode = chain
+lib_deps =
+  https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip
+  ESP32Async/ESPAsyncWebServer
+lib_ignore =
+  AsyncTCP
+  ESP32Async/AsyncTCP
+```
+
+**AsyncTCP_RP2040W**
+
+AsyncTCP_RP2040W provides support for RP2040 and replaced AsyncTCP in this case:
+
+```ini
+lib_compat_mode = strict
+lib_ldf_mode = chain
+platform = https://github.com/maxgerhardt/platform-raspberrypi.git
+board = rpipicow
+board_build.core = earlephilhower
+lib_deps =
+  khoih-prog/AsyncTCP_RP2040W @ 1.2.0
+  ESP32Async/ESPAsyncWebServer
+lib_ignore =
+  lwIP_ESPHost
+build_flags = ${env.build_flags}
+  -Wno-missing-field-initializers
+```
+
+## Important recommendations for build options
+
+Most of the crashes are caused by improper use or configuration of the AsyncTCP library used for the project.
+Here are some recommendations to avoid them and build-time flags you can change.
+
+`CONFIG_ASYNC_TCP_MAX_ACK_TIME` - defines a timeout for TCP connection to be considered alive when waiting for data.
+In some bad network conditions you might consider increasing it.
+
+`CONFIG_ASYNC_TCP_QUEUE_SIZE` - defines the length of the queue for events related to connections handling.
+Both the server and AsyncTCP library were optimized to control the queue automatically. Do NOT try blindly increasing the queue size, it does not help you in a way you might think it is. If you receive debug messages about queue throttling, try to optimize your server callbacks code to execute as fast as possible.
+Read #165 thread, it might give you some hints.
+
+`CONFIG_ASYNC_TCP_RUNNING_CORE` - CPU core thread affinity that runs the queue events handling and executes server callbacks. Default is ANY core, so it means that for dualcore SoCs both cores could handle server activities. If your server's code is too heavy and unoptimized or you see that sometimes
+server might affect other network activities, you might consider to bind it to the same core that runs Arduino code (1) to minimize affect on radio part. Otherwise you can leave the default to let RTOS decide where to run the thread based on priority
+
+`CONFIG_ASYNC_TCP_STACK_SIZE` - stack size for the thread that runs sever events and callbacks. Default is 16k that is a way too much waste for well-defined short async code or simple static file handling. You might want to cosider reducing it to 4-8k to same RAM usage. If you do not know what this is or not sure about your callback code demands - leave it as default, should be enough even for very hungry callbacks in most cases.
+
+> [!NOTE]
+> This relates to ESP32 only, ESP8266 uses different ESPAsyncTCP lib that does not has this build options
+
+I personally use the following configuration in my projects:
+
+```c++
+  -D CONFIG_ASYNC_TCP_MAX_ACK_TIME=5000   // (keep default)
+  -D CONFIG_ASYNC_TCP_PRIORITY=10         // (keep default)
+  -D CONFIG_ASYNC_TCP_QUEUE_SIZE=64       // (keep default)
+  -D CONFIG_ASYNC_TCP_RUNNING_CORE=1      // force async_tcp task to be on same core as Arduino app (default is any core)
+  -D CONFIG_ASYNC_TCP_STACK_SIZE=4096     // reduce the stack size (default is 16K)
+```
+
+If you need to serve chunk requests with a really low buffer (which should be avoided), you can set `-D ASYNCWEBSERVER_USE_CHUNK_INFLIGHT=0` to disable the in-flight control.
 
 ## Changes in this repository
 
@@ -65,11 +176,9 @@ Supports: WebSocket, SSE, Authentication, Arduino Json 7, File Upload, Static Fi
 - (perf) Lot of code cleanup and optimizations
 - (perf) Performance improvements in terms of memory, speed and size
 
----
+**WARNING: Important notes about future version 4.x**
 
-## WARNING: Important notes about future version 4.x
-
-This ESPAsyncWebServer fork is now at version 3.x, where we try to keep the API compatibility with original project as much as possible.
+ESPAsyncWebServer is now at version 3.x, where we try to keep the API compatibility with original project as much as possible.
 
 We plan on creating a next major 4.x version that will:
 
@@ -85,41 +194,6 @@ Maintaining a library for ESP8266 and RP2040 has a real cost and clearly what we
 
 If you are an ESP8266 user and want to help improve current 3.x, you are more than welcomed to contribute to this community effort.
 
-## Dependencies
-
-> [!WARNING]
-> The library name was changed from `ESP Async WebServer` to `ESPAsyncWebServer` as per the Arduino Lint recommendations, but its name had to stay `ESP Async WebServer` in Arduino Registry.
-
-**PlatformIO / pioarduino:**
-
-```ini
-lib_compat_mode = strict
-lib_ldf_mode = chain
-lib_deps = ESP32Async/ESPAsyncWebServer
-```
-
-**Dependencies:**
-
-- **ESP32 with AsyncTCP**: [`ESP32Async/AsyncTCP`](https://github.com/ESP32Async/AsyncTCP/releases)
-- **ESP32 with AsyncTCPSock**: `https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip`
-- **ESP8266**: [`ESP32Async/ESPAsyncTCP`](https://github.com/ESP32Async/ESPAsyncTCP/releases)
-- **RP2040**: [`khoih-prog/AsyncTCP_RP2040W`](https://github.com/khoih-prog/AsyncTCP_RP2040W/releases)
-
-**AsyncTCPSock**
-
-AsyncTCPSock can be used instead of AsyncTCP by excluding AsyncTCP from the library dependencies and adding AsyncTCPSock instead:
-
-```ini
-lib_compat_mode = strict
-lib_ldf_mode = chain
-lib_deps =
-  https://github.com/ESP32Async/AsyncTCPSock/archive/refs/tags/v1.0.3-dev.zip
-  ESP32Async/ESPAsyncWebServer
-lib_ignore =
-  AsyncTCP
-  ESP32Async/AsyncTCP
-```
-
 ## Performance
 
 Performance of `ESP32Async/ESPAsyncWebServer`:
@@ -129,7 +203,7 @@ Performance of `ESP32Async/ESPAsyncWebServer`:
 > autocannon -c 10 -w 10 -d 20 http://192.168.4.1
 ```
 
-With `ESP32Async/AsyncTCP @ 3.3.2`
+With `ESP32Async/AsyncTCP`
 
 <img width="629" alt="perf-c10" src="https://github.com/user-attachments/assets/b4b7f953-c24d-4e04-8d87-ba3f26805737" />
 
@@ -171,43 +245,11 @@ Test is running for 20 seconds with 10 connections.
 // Total: 2038 events, 509.50 events / second
 ```
 
-## Important recommendations for build options
-
-Most of the crashes are caused by improper use or configuration of the AsyncTCP library used for the project.
-Here are some recommendations to avoid them and build-time flags you can change.
-
-`CONFIG_ASYNC_TCP_MAX_ACK_TIME` - defines a timeout for TCP connection to be considered alive when waiting for data.
-In some bad network conditions you might consider increasing it.
-
-`CONFIG_ASYNC_TCP_QUEUE_SIZE` - defines the length of the queue for events related to connections handling.
-Both the server and AsyncTCP library in this fork were optimized to control the queue automatically. Do NOT try blindly increasing the queue size, it does not help you in a way you might think it is. If you receive debug messages about queue throttling, try to optimize your server callbacks code to execute as fast as possible.
-Read #165 thread, it might give you some hints.
-
-`CONFIG_ASYNC_TCP_RUNNING_CORE` - CPU core thread affinity that runs the queue events handling and executes server callbacks. Default is ANY core, so it means that for dualcore SoCs both cores could handle server activities. If your server's code is too heavy and unoptimized or you see that sometimes
-server might affect other network activities, you might consider to bind it to the same core that runs Arduino code (1) to minimize affect on radio part. Otherwise you can leave the default to let RTOS decide where to run the thread based on priority
-
-`CONFIG_ASYNC_TCP_STACK_SIZE` - stack size for the thread that runs sever events and callbacks. Default is 16k that is a way too much waste for well-defined short async code or simple static file handling. You might want to cosider reducing it to 4-8k to same RAM usage. If you do not know what this is or not sure about your callback code demands - leave it as default, should be enough even for very hungry callbacks in most cases.
-
-> [!NOTE]
-> This relates to ESP32 only, ESP8266 uses different ESPAsyncTCP lib that does not has this build options
-
-I personally use the following configuration in my projects:
-
-```c++
-  -D CONFIG_ASYNC_TCP_MAX_ACK_TIME=5000   // (keep default)
-  -D CONFIG_ASYNC_TCP_PRIORITY=10         // (keep default)
-  -D CONFIG_ASYNC_TCP_QUEUE_SIZE=64       // (keep default)
-  -D CONFIG_ASYNC_TCP_RUNNING_CORE=1      // force async_tcp task to be on same core as Arduino app (default is any core)
-  -D CONFIG_ASYNC_TCP_STACK_SIZE=4096     // reduce the stack size (default is 16K)
-```
-
-If you need to serve chunk requests with a really low buffer (which should be avoided), you can set `-D ASYNCWEBSERVER_USE_CHUNK_INFLIGHT=0` to disable the in-flight control.
-
 ## `AsyncWebSocketMessageBuffer` and `makeBuffer()`
 
 The fork from [yubox-node-org](https://github.com/yubox-node-org/ESPAsyncWebServer) introduces some breaking API changes compared to the original library, especially regarding the use of `std::shared_ptr<std::vector<uint8_t>>` for WebSocket.
 
-This fork is compatible with the original library from [me-no-dev](https://github.com/me-no-dev/ESPAsyncWebServer) regarding WebSocket, and wraps the optimizations done by `yubox-node-org` in the `AsyncWebSocketMessageBuffer` class.
+This library is compatible with the original library from [me-no-dev](https://github.com/me-no-dev/ESPAsyncWebServer) regarding WebSocket, and wraps the optimizations done by `yubox-node-org` in the `AsyncWebSocketMessageBuffer` class.
 So you have the choice of which API to use.
 
 Here are examples for serializing a Json document in a websocket message buffer:
