@@ -1,0 +1,182 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
+
+//
+// Perf tests
+//
+
+#include <Arduino.h>
+#ifdef ESP32
+#include <AsyncTCP.h>
+#include <WiFi.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#elif defined(TARGET_RP2040)
+#include <WebServer.h>
+#include <WiFi.h>
+#endif
+
+#include <ESPAsyncWebServer.h>
+
+static const char *htmlContent PROGMEM = R"(
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample HTML</title>
+</head>
+<body>
+    <h1>Hello, World!</h1>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, purus a euismod
+    rhoncus, urna ipsum cursus massa, eu dictum tellus justo ac justo. Quisque ullamcorper
+    arcu nec tortor ullamcorper, vel fermentum justo fermentum. Vivamus sed velit ut elit
+    accumsan congue ut ut enim. Ut eu justo eu lacus varius gravida ut a tellus. Nulla facilisi.
+    Integer auctor consectetur ultricies. Fusce feugiat, mi sit amet bibendum viverra, orci leo
+    dapibus elit, id varius sem dui id lacus.</p>
+</body>
+</html>
+)";
+
+static const size_t htmlContentLength = strlen_P(htmlContent);
+
+static AsyncWebServer server(80);
+static AsyncEventSource events("/events");
+
+void setup() {
+  Serial.begin(115200);
+
+#ifndef CONFIG_IDF_TARGET_ESP32H2
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("esp-captive");
+#endif
+
+  // HTTP endpoint
+  //
+  // > brew install autocannon
+  // > autocannon -c 10 -w 10 -d 20 http://192.168.4.1
+  // > autocannon -c 16 -w 16 -d 20 http://192.168.4.1
+  //
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // need to cast to uint8_t*
+    // if you do not, the const char* will be copied in a temporary String buffer
+    request->send(200, "text/html", (uint8_t *)htmlContent, htmlContentLength);
+  });
+
+  // SSS endpoint
+  //
+  // launch 16 concurrent workers for 30 seconds
+  // > for i in {1..10}; do ( count=$(gtimeout 30 curl -s -N -H "Accept: text/event-stream" http://192.168.4.1/events 2>&1 | grep -c "^data:"); echo "Total: $count events, $(echo "$count / 4" | bc -l) events / second" ) & done;
+  // > for i in {1..16}; do ( count=$(gtimeout 30 curl -s -N -H "Accept: text/event-stream" http://192.168.4.1/events 2>&1 | grep -c "^data:"); echo "Total: $count events, $(echo "$count / 4" | bc -l) events / second" ) & done;
+  //
+  // With AsyncTCP, with 16 workers: a lot of "Event message queue overflow: discard message", no crash
+  //
+  // Total: 1711 events, 427.75 events / second
+  // Total: 1711 events, 427.75 events / second
+  // Total: 1626 events, 406.50 events / second
+  // Total: 1562 events, 390.50 events / second
+  // Total: 1706 events, 426.50 events / second
+  // Total: 1659 events, 414.75 events / second
+  // Total: 1624 events, 406.00 events / second
+  // Total: 1706 events, 426.50 events / second
+  // Total: 1487 events, 371.75 events / second
+  // Total: 1573 events, 393.25 events / second
+  // Total: 1569 events, 392.25 events / second
+  // Total: 1559 events, 389.75 events / second
+  // Total: 1560 events, 390.00 events / second
+  // Total: 1562 events, 390.50 events / second
+  // Total: 1626 events, 406.50 events / second
+  //
+  // With AsyncTCP, with 10 workers:
+  //
+  // Total: 2038 events, 509.50 events / second
+  // Total: 2120 events, 530.00 events / second
+  // Total: 2119 events, 529.75 events / second
+  // Total: 2038 events, 509.50 events / second
+  // Total: 2037 events, 509.25 events / second
+  // Total: 2119 events, 529.75 events / second
+  // Total: 2119 events, 529.75 events / second
+  // Total: 2120 events, 530.00 events / second
+  // Total: 2038 events, 509.50 events / second
+  // Total: 2038 events, 509.50 events / second
+  //
+  // With AsyncTCPSock, with 16 workers: ESP32 CRASH !!!
+  //
+  // With AsyncTCPSock, with 10 workers:
+  //
+  // Total: 1242 events, 310.50 events / second
+  // Total: 1242 events, 310.50 events / second
+  // Total: 1242 events, 310.50 events / second
+  // Total: 1242 events, 310.50 events / second
+  // Total: 1181 events, 295.25 events / second
+  // Total: 1182 events, 295.50 events / second
+  // Total: 1240 events, 310.00 events / second
+  // Total: 1181 events, 295.25 events / second
+  // Total: 1181 events, 295.25 events / second
+  // Total: 1183 events, 295.75 events / second
+  //
+  server.addHandler(&events);
+
+  server.begin();
+}
+
+static uint32_t lastSSE = 0;
+static uint32_t deltaSSE = 10;
+
+static uint32_t lastHeap = 0;
+
+void loop() {
+  uint32_t now = millis();
+  if (now - lastSSE >= deltaSSE) {
+    events.send(String("ping-") + now, "heartbeat", now);
+    lastSSE = millis();
+  }
+
+#ifdef ESP32
+  if (now - lastHeap >= 2000) {
+    Serial.printf("Free heap: %" PRIu32 "\n", ESP.getFreeHeap());
+    lastHeap = now;
+  }
+#endif
+}

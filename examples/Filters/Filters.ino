@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Copyright 2016-2025 Hristo Gochkov, Mathieu Carbou, Emil Muratov
 
-// Reproduced issue https://github.com/ESP32Async/ESPAsyncWebServer/issues/26
+//
+// Shows how to use setFilter to route requests to different handlers based on WiFi mode
+//
 
 #include <DNSServer.h>
 #ifdef ESP32
@@ -16,8 +18,8 @@
 #endif
 #include "ESPAsyncWebServer.h"
 
-DNSServer dnsServer;
-AsyncWebServer server(80);
+static DNSServer dnsServer;
+static AsyncWebServer server(80);
 
 class CaptiveRequestHandler : public AsyncWebHandler {
 public:
