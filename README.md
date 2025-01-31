@@ -302,7 +302,7 @@ Middleware is a way to intercept requests to perform some operations on them, li
 Middleware can either be attached to individual handlers, attached at the server level (thus applied to all handlers), or both.
 They will be executed in the order they are attached, and they can stop the request processing by sending a response themselves.
 
-You can have a look at the [SimpleServer.ino](https://github.com/ESP32Async/ESPAsyncWebServer/blob/main/examples/SimpleServer/SimpleServer.ino) example for some use cases.
+You can have a look at the [examples](https://github.com/ESP32Async/ESPAsyncWebServer/blob/main/examples) for some use cases.
 
 For example, such middleware would handle authentication and set some attributes on the request to make them available for the next middleware and for the handler which will process the request.
 
