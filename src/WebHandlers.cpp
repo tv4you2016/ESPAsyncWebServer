@@ -299,7 +299,7 @@ void AsyncCallbackWebHandler::handleRequest(AsyncWebServerRequest *request) {
   if (_onRequest) {
     _onRequest(request);
   } else {
-    request->send(500);
+    request->send(404, T_text_plain, "Not found");
   }
 }
 void AsyncCallbackWebHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final) {
