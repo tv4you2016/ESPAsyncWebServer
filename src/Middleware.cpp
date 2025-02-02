@@ -208,6 +208,19 @@ void AsyncLoggingMiddleware::run(AsyncWebServerRequest *request, ArMiddlewareNex
         _out->println(h.value());
       }
     }
+ 
+    // List all parameters
+    auto paramCount = request->params(); // Assuming params() returns a container
+    for (size_t i = 0; i < paramCount; ++i) {
+        const AsyncWebParameter* p = request->getParam(i); // Change to const pointer
+        if (p->isFile()) {
+            Serial.printf("< FILE[%s]: %s, size: %u\n", p->name().c_str(), p->value().c_str(), p->size());
+        } else if (p->isPost()) {
+            Serial.printf("< POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
+        } else {
+            Serial.printf("< GET[%s]: %s\n", p->name().c_str(), p->value().c_str());
+        }
+    }
     _out->println('<');
   } else {
     _out->println(F("* Connection closed!"));
